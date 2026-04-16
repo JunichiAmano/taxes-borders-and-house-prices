@@ -1,0 +1,54 @@
+---
+title: "diary1"
+author: "Juan Duarte"
+date: "2026-04-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
+use_python(here::here("venv", "bin", "python"), required = TRUE)
+library(dplyr)
+```
+
+## Summary of the project
+Study the effect coused by real state property tax in housing prices. We use administrative data to exploit cuasi-experiments in order to identify a causality. Data is mostly georeferenced prices and taxes. The method is a combination between regression discontinuity design and difference in difference.
+
+## This diary
+We will narrate the empirical process, by replicating a series of scripts.
+
+## Opening and cleanning raw data.
+This python script identify the shapes that are neighbour to each other.
+* Loads `gran_stgoPolygon.shp`.
+* Translates vectors to degrees in a globe (EPSG:4326).
+* Shrinks the polygons to identify the adyacent homogenenous areas (HA)
+* Produces pairs of adyacent HA.
+
+```{python, include=FALSE}
+import os
+import pandas as pd
+import geopandas as gpd
+from matplotlib import pyplot as plt
+import contextily as ctx
+import seaborn as sns
+import json
+import numpy as np
+from shapely import geometry
+import tqdm
+import contextily as cx
+from datetime import datetime
+from tqdm import tqdm
+```
+
+```{r}
+config <- list(
+    root_dir = normalizePath(here::here())
+)
+py$config <- config
+
+source_python(here::here("scripts","python", "identify_neighbour_HA.py"))
+
+read.csv("./data_channel/adjoining_HA.csv") %>% head()
+```
+

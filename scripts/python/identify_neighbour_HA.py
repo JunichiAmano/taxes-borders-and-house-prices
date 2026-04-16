@@ -3,8 +3,11 @@ import warnings
 
 try:
     root_dir = config['root_dir']
-except NameError:
-    root_dir = os.pardir
+except (NameError, KeyError):
+    # Fallback: assume script is in project_root/python/
+    # and navigate up one level to the project root
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+    warnings.warn(f"root_dir not provided by R. Using fallback: {root_dir}")
 
 ## functions
     
@@ -131,12 +134,12 @@ def generate_new_polygon(HA_geometry):
       
 ### MAIN SCRIPT BODY
 
-data_path = os.path.join(root_dir, 'input_data')
+data_path = os.path.join(root_dir, 'raw')
 
 
 # 1. LOAD POLYGON DATA
 # Read shapefile containing homogeneous area polygons
-gdf_HA = gpd.read_file(os.path.join(data_path, 'geodatasets', 'homogeneous_areas', 'gran_stgoPolygon.shp'))
+gdf_HA = gpd.read_file(os.path.join(data_path, 'homogeneous_areas', 'gran_stgoPolygon.shp'))
 
 # 2. REPROJECT DATA
 # Convert to WGS84 (EPSG:4326) for geographic coordinates in degrees
@@ -157,6 +160,7 @@ gdf_HA['geometry'] = gdf_HA['geometry'].apply(generate_new_polygon)
 # 5. FIND INTERSECTING/ADJOINING POLYGONS
 # Perform spatial self-join to find which polygons intersect each other
 gdf_intersect = gpd.sjoin(gdf_HA, gdf_HA, how='left', predicate='intersects')
+gdf_intersect = gdf_intersect.reset_index(drop=True)
 
 # 6. REMOVE SELF-INTERSECTIONS
 # Filter out rows where a polygon is joined with itself
@@ -177,6 +181,9 @@ df_intersect[df_intersect['CMN_AH']=='16110-CMB017']
 
 # 9. SAVE RESULTS
 # Export adjacency list to CSV file
-df_intersect.to_csv(os.path.join(data_path, 'datasets', 'adjoining_HA.csv'), index=False)
+df_intersect = df_intersect.reset_index(drop=True)
+df_intersect.to_csv(os.path.join(root_dir, 'data_channel', 'adjoining_HA.csv'), index=False)
+
+
 
 

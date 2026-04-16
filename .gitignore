@@ -47,3 +47,28 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Data files (store these on Dropbox, OSF, or Zenodo instead)
+*.dta
+*.csv
+*.xlsx
+*.RData
+*.Rds
+data/raw/
+data/clean/
+
+# Python virtual environment (rebuilt from requirements.txt)
+venv/
+.env/
+*.pyc
+
+# Mac system files (useless clutter)
+.DS_Store
+
+# Stata temporary files
+*.log
+*.smcl
+
+# MATLAB temporary files
+*.m~
+*.mat
