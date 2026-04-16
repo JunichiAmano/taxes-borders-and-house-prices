@@ -10,6 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(reticulate)
 use_python(here::here("venv", "bin", "python"), required = TRUE)
 library(dplyr)
+library(tidyverse)
+library(sf)
+library(ggplot2)
+library(osmdata)
 ```
 
 ## Summary of the project
@@ -41,7 +45,7 @@ from datetime import datetime
 from tqdm import tqdm
 ```
 
-```{r}
+```{r identify-neighbour}
 config <- list(
     root_dir = normalizePath(here::here())
 )
@@ -51,4 +55,41 @@ source_python(here::here("scripts","python", "identify_neighbour_HA.py"))
 
 read.csv("./data_channel/adjoining_HA.csv") %>% head()
 ```
+```{r adjoining1}
+source_python(here::here("scripts","python", "identify_distance_property_adjoining_HA.py"))
+```
+
+
+```{r adjoining2}
+g_area <- read_sf("./data_channel/g_area.shp") 
+
+#calles <- opq(bbox = st_bbox(g_area %>%
+#                               filter(COMUNA == 15160))) %>%
+#  add_osm_feature(key = "highway", 
+#                  value = c("residential", "living_street",
+#                            "unclassified",
+#                            "service", "footway")) %>%
+#  osmdata_sf()
+
+g_area %>%
+  filter(COMUNA == 15160) %>%
+  ggplot() +
+#  geom_sf(data = calles$osm_lines,
+#          inherit.aes = FALSE,
+#          color = "darkgrey",
+#          size = .3,
+#          alpha = 1) +
+  geom_sf(fill = "green",
+          alpha = 0.3,
+          color = "black",
+          linewidth = 0.5) +
+  labs(x = "longitud",
+       y = "latitud") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 12),
+        plot.background = element_rect(fill = "white", color = NA),
+        aspect.ratio = 1) +
+  coord_sf(datum = st_crs(g_area))
+```
+
 
