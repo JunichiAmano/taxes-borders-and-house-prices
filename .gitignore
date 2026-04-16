@@ -72,3 +72,7 @@ venv/
 # MATLAB temporary files
 *.m~
 *.mat
+
+# Ignore everything inside these folders
+raw/
+data_channel/
