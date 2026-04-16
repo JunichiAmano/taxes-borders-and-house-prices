@@ -102,25 +102,9 @@ g_area %>%
   coord_sf(datum = st_crs(g_area))
 ```
 
-The next script assigns each homogeneous area to the ZCS with which it has the largest overlap. It reads both shapefiles, harmonizes coordinate systems, keeps residential homogeneous areas, computes polygon intersections, and then stores the dominant ZCS match for each homogeneous area in an `.rds` file. That is, we do the same as with the other python scripts. But we 
+The next script assigns each homogeneous area to the ZCS with which it has the largest overlap. It reads both shapefiles, harmonizes coordinate systems, keeps residential homogeneous areas, computes polygon intersections, and then stores the dominant ZCS match for each homogeneous area in an `.rds` file. That is, we do the same as with the identify_neighbour but we include the zones.
 
-```{r ha-within-zcs }
-#library(sf)
-#library(dplyr)
-#library(stringr)
-#library(ggplot2)
-#library(ggiraph)
-#library(plotly)
-#library(rdrobust)
-#library(fixest)
-#library(tidyverse)
-#library(rddensity)
-#library(rdrobust)
-#library(QTE.RD)
-#library(data.table)
-#library(readxl)
-#library(binsreg)
-
+```{r ha-within-zcs , eval = F}
 # Functions ---------------------------------------------------------------
 
 #options(modelsummary_factory_default = 'kableExtra')
@@ -161,14 +145,15 @@ for (i in 1:nrow(df_ah)){
   
   print(i)
   
-  df_intersect <- st_intersection(df_ah[i,], df_zcs)
-  df_intersect$area <- as.numeric(st_area(df_intersect))
-  df_intersect <- arrange(df_intersect, desc(area))
+  df_intersect <- suppressWarnings( st_intersection(df_ah[i,], df_zcs) )
+  
+  df_intersect$area <- as.numeric(st_area(df_intersect)) 
+  df_intersect <- arrange(df_intersect, desc(area)) 
   #df_intersect <- df_intersect[1, c("CMN_AH", "ZONA", "area")]
   #df_intersect$geometry <- NULL
   
-  df_ah$ZONA[i] <- df_intersect$ZONA.1[1]
-  df_ah$area[i] <- df_intersect$area[1]
+  df_ah$ZONA[i] <-  df_intersect$ZONA.1[1] 
+  df_ah$area[i] <-  df_intersect$area[1] 
   
 }
 
