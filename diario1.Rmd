@@ -55,12 +55,22 @@ source_python(here::here("scripts","python", "identify_neighbour_HA.py"))
 
 read.csv("./data_channel/adjoining_HA.csv") %>% head()
 ```
+
+This Python script prepares the spatial inputs used to inspect properties near homogeneous-area borders. It:
+* loads property coordinates for a selected group of communes,
+* converts them into an `sf`-compatible point layer, 
+* reads the homogeneous-area polygons for Greater Santiago, and
+* extracts the homogeneous area code associated with each role from the JSON files.
+* Finally, it exports both the polygon layer (`g_area.shp`) and the point layer (`g_points.shp`) to `data_channel/` so they can be plotted and inspected from R
 ```{r adjoining1}
+
 source_python(here::here("scripts","python", "identify_distance_property_adjoining_HA.py"))
 ```
 
+This plot shows the homogeneous areas of Vitacura, allowing us to visualize the spatial partition used in the analysis for that commune.
 
 ```{r adjoining2}
+
 g_area <- read_sf("./data_channel/g_area.shp") 
 
 #calles <- opq(bbox = st_bbox(g_area %>%
@@ -92,4 +102,83 @@ g_area %>%
   coord_sf(datum = st_crs(g_area))
 ```
 
+The next script assigns each homogeneous area to the ZCS with which it has the largest overlap. It reads both shapefiles, harmonizes coordinate systems, keeps residential homogeneous areas, computes polygon intersections, and then stores the dominant ZCS match for each homogeneous area in an `.rds` file. That is, we do the same as with the other python scripts. But we 
+
+```{r ha-within-zcs }
+#library(sf)
+#library(dplyr)
+#library(stringr)
+#library(ggplot2)
+#library(ggiraph)
+#library(plotly)
+#library(rdrobust)
+#library(fixest)
+#library(tidyverse)
+#library(rddensity)
+#library(rdrobust)
+#library(QTE.RD)
+#library(data.table)
+#library(readxl)
+#library(binsreg)
+
+# Functions ---------------------------------------------------------------
+
+#options(modelsummary_factory_default = 'kableExtra')
+sf_use_s2(FALSE)
+
+# Zonas de caracteristicas similares ----------------------------------------------------
+
+df_zcs <- read_sf("./raw/zcs/ZCS GRAN SANTIAGO.shp")
+df_zcs[,c(6, 9)] <- NULL
+df_zcs <- st_set_crs(df_zcs, "EPSG:32719")
+df_zcs <- st_transform(df_zcs, 4326)
+#df_zcs <- df_zcs[df_zcs$COMUNA == "Vitacura",]
+# df_zcs$adj_zcs <- st_touches(df_zcs, df_zcs)
+# df_zcs$adj_zcs_number <- sapply(df_zcs$adj_zcs, FUN = function (x) length(x))
+# df_zcs <- df_zcs[df_zcs$adj_zcs_number > 0,]
+df_zcs$id <- 1:nrow(df_zcs)
+df_zcs$ZONA <- paste0(df_zcs$COMUNA, "-", df_zcs$ZONA)
+
+# Areas homogeneas --------------------------------------------------------
+
+df_ah <- read_sf("./raw/homogeneous_areas/gran_stgoPolygon.shp")
+df_ah <- df_ah %>%
+  filter(USO == "H")
+#df_ah <- df_ah[df_ah$NOM_COMUNA == "VITACURA",]
+df_ah <- st_transform(df_ah, 4326)
+df_ah$adj_AH <- st_touches(df_ah, df_ah)
+df_ah$adj_AH_number <- sapply(df_ah$adj_AH, FUN = function (x) length(x))
+df_ah <- df_ah[df_ah$adj_AH_number > 0,]
+df_ah$id <- 1:nrow(df_ah)
+df_ah$adj_AH <- st_touches(df_ah, df_ah)
+
+df_ah$area <- NA
+df_ah$ZONA <- NA
+
+i <- 1
+
+for (i in 1:nrow(df_ah)){
+  
+  print(i)
+  
+  df_intersect <- st_intersection(df_ah[i,], df_zcs)
+  df_intersect$area <- as.numeric(st_area(df_intersect))
+  df_intersect <- arrange(df_intersect, desc(area))
+  #df_intersect <- df_intersect[1, c("CMN_AH", "ZONA", "area")]
+  #df_intersect$geometry <- NULL
+  
+  df_ah$ZONA[i] <- df_intersect$ZONA.1[1]
+  df_ah$area[i] <- df_intersect$area[1]
+  
+}
+
+df <- df_ah[,c("CMN_AH", "ZONA", "area")]
+df$geometry <- NULL
+df <- arrange(df, CMN_AH, desc(area))
+df$area <- NULL
+df <- df[!duplicated(df$CMN_AH),]
+df <- df[complete.cases(df),]
+
+saveRDS(df, "./data_channel/ah_within_zcs.rds")
+```
 
